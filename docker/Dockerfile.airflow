@@ -1,0 +1,12 @@
+FROM apache/airflow:2.9.0-python3.12
+
+ENV AIRFLOW__CORE__LOAD_EXAMPLES=False
+
+USER root
+RUN pip3 install --upgrade pip
+
+USER airflow
+
+COPY ../orchestration/airflow/dags /opt/airflow/dags
+
+CMD bash -c "airflow db init && airflow scheduler & airflow webserver"

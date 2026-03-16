@@ -1,0 +1,7 @@
+FROM bde2020/spark-base:3.2.1-hadoop3.2
+
+WORKDIR /app
+
+COPY ../core/batch /app
+
+CMD ["tail", "-f", "/dev/null"]

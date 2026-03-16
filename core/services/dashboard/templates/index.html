@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<div id="v1">--</div>
+<div id="v2">--</div>
+
+<script>
+setInterval(async () => {
+    const r = await fetch("/data")
+    const d = await r.json()
+
+    document.getElementById("v1").textContent = d.data[0][1]
+    document.getElementById("v2").textContent = d.predict_data[0][1]
+}, 1000)
+</script>
+
+</body>
+</html>

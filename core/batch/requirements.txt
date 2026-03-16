@@ -1,0 +1,4 @@
+kafka-python
+hdfs
+pyspark
+mysql-connector-python
