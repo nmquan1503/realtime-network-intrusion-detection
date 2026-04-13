@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init-buckets
+  namespace: bigdata
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "Waiting MinIO..."
+              sleep 15
+
+              mc alias set local http://minio.bigdata.svc.cluster.local:9000 \
+                minioadmin minioadmin123
+
+              mc mb -p local/data-lake || true
+
+              # create logical structure (optional)
+              echo "init bronze/silver/gold"
+              mc cp /etc/hosts local/data-lake/bronze/.keep || true
+              mc cp /etc/hosts local/data-lake/silver/.keep || true
+              mc cp /etc/hosts local/data-lake/gold/.keep || true

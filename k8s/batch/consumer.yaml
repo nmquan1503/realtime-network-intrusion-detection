@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-consumer
+  namespace: bigdata
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: batch-consumer
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: batch-consumer
+          image: mquan1503/bigdata-batch:latest
+          imagePullPolicy: Always
+          command: ["python3", "-u", "/app/consumer.py"]
+          envFrom:
+            - configMapRef:
+                name: config
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: tmp-storage
+              mountPath: /tmp
+      volumes:
+        - name: tmp-storage
+          emptyDir: {}
