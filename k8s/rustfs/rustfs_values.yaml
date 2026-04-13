@@ -1,0 +1,28 @@
+mode:
+  standalone:
+    enabled: true
+  distributed:
+    enabled: false
+
+dashboard:
+  enabled: true
+  service:
+    type: NodePort
+    port: 9001
+    nodePort: 32001
+
+replicaCount: 1
+
+storageclass:
+  name: local-path
+  size: 50Gi
+
+secret:
+  rustfs:
+    access_key: rustfsadmin
+    secret_key: rustfsadmin
+
+service:
+  type: NodePort
+  port: 9000
+  nodePort: 30090 

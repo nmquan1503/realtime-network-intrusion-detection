@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-simulator
+  namespace: bigdata
+  labels:
+    app: batch-simulator
+spec:
+  template:
+    metadata:
+      labels:
+        app: batch-simulator
+    spec:
+      containers:
+        - name: batch-simulator
+          image: mquan1503/bigdata-simulator:latest
+          command: ["python", "-u", "/app/batch_producer.py"]
+          envFrom:
+            - configMapRef:
+                name: config
+          volumeMounts:
+            - name: batch-data
+              mountPath: /data/csv
+          resources:
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+      restartPolicy: Never
+      volumes:
+        - name: batch-data
+          hostPath:
+            path: $PROJECT_PATH/data/batch
+            type: Directory

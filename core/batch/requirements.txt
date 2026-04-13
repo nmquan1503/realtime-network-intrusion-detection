@@ -1,4 +1,8 @@
 kafka-python
-hdfs
+# hdfs
 pyspark
-mysql-connector-python
+# mysql-connector-python
+boto3
+pyarrow
+pandas
+lz4

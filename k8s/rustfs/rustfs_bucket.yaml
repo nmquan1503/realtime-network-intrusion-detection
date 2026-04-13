@@ -1,0 +1,18 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-rustfs-bucket
+  namespace: bigdata
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: minio/mc
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mc alias set rustfs http://rustfs-svc:9000 rustfsadmin rustfsadmin
+              mc mb -p rustfs/ids-data || true
+              mc ls rustfs

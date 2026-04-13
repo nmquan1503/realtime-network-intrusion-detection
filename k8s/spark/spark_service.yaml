@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master-svc
+  namespace: bigdata
+spec:
+  type: ClusterIP
+  selector:
+    app: spark-master
+  ports:
+    - name: cluster-port
+      port: 7077
+      targetPort: 7077
+    - name: rest-api
+      port: 6066
+      targetPort: 6066
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master-ui-external
+  namespace: bigdata
+spec:
+  type: LoadBalancer
+  selector:
+    app: spark-master
+  ports:
+    - name: web-ui
+      port: 8082
+      targetPort: 8080
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: spark-driver-ui-external
+#   namespace: bigdata
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: spark-master
+#   ports:
+#     - name: web-ui
+#       port: 4040
+#       targetPort: 4040

@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-preprocessing
+  namespace: bigdata
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: batch-preprocessing
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: batch-preprocessing
+          image: mquan1503/bigdata-batch:latest
+          imagePullPolicy: Always
+          command: ["python3", "-u", "/app/preprocessing.py"]
+          envFrom:
+            - configMapRef:
+                name: config
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1.5Gi"
+            limits:
+              cpu: "1"
+              memory: "2.5Gi"

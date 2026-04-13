@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-trainer
+  namespace: bigdata
+  labels:
+    app: batch-trainer
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: batch-trainer
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: batch-trainer
+          image: mquan1503/bigdata-batch:latest
+          command: ["python3", "/app/trainer.py"]
+
+          envFrom:
+            - configMapRef:
+                name: config
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
