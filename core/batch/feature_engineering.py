@@ -12,7 +12,7 @@ def feature_engineer():
         app_name="silver_to_gold",
         stage="feature"
     )
-    log.log("Spark session created")
+    log.log("SPARK")
 
     dt = datetime.strptime(config.PROCESS_DATE, "%Y-%m-%d")
 
@@ -27,7 +27,7 @@ def feature_engineer():
     )
 
     df = spark.read.parquet(silver_path)
-    log.log(f"Load silver ({df.rdd.getNumPartitions()} partitions)")
+    log.log("READ")
 
 
     df = df.withColumn(
@@ -42,9 +42,6 @@ def feature_engineer():
         "is_web_port",
         F.when((F.col("Dst Port") == 80) | (F.col("Dst Port") == 443), 1).otherwise(0)
     )
-    log.log("Added port-based features")
-
-
     df = df.withColumn(
         "pkt_ratio",
         F.col("Tot Fwd Pkts") / (F.col("Tot Bwd Pkts") + F.lit(1))
@@ -58,7 +55,7 @@ def feature_engineer():
         (F.col("TotLen Fwd Pkts") + F.col("TotLen Bwd Pkts")) /
         (F.col("Tot Fwd Pkts") + F.col("Tot Bwd Pkts") + F.lit(1))
     )
-    log.log("Added ratio-based features")
+    log.log("FEATURES")
 
     df = df.withColumn(
         "Label",
@@ -94,8 +91,10 @@ def feature_engineer():
 
         .otherwise("Unknown")
     )
+    log.log("LABEL")
 
     df.write.mode("overwrite").parquet(gold_path)
+    log.log("WRITE")
 
     log.end()
 

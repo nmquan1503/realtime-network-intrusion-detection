@@ -20,7 +20,7 @@ def train():
         app_name="gold_to_model",
         stage="train"
     )
-    log.log("Spark ready")
+    log.log("SPARK")
 
     now = datetime.now()
 
@@ -32,7 +32,7 @@ def train():
     )
 
     df = spark.read.parquet(gold_base_path)
-    log.log("Load gold")
+    log.log("READ")
 
     feature_cols = ["Label"]    # I'll update later
 
@@ -65,16 +65,16 @@ def train():
         assembler,
         xgb
     ])
-    log.log("Pipeline ready")
+    log.log("PIPELINE")
 
     train_df, test_df = df.randomSplit([0.8, 0.2], seed=42)
-    log.log("Split")
+    log.log("SPLIT")
 
     model = pipeline.fit(train_df)
-    log.log("Train")
+    log.log("TRAIN")
 
     pred = model.transform(test_df)
-    log.log("Predict")
+    log.log("PREDICT")
 
     evaluator_acc = MulticlassClassificationEvaluator(
         labelCol="label",
@@ -131,11 +131,11 @@ def train():
     )
 
     metrics_df = global_metrics.unionByName(per_class_metrics)
-    log.log("Evaluate")
+    log.log("EVAL")
 
     model.write().overwrite().save(f"{model_base_path}/model/")
     metrics_df.coalesce(1).write.mode("overwrite").json(f"{model_base_path}/metrics/")
-    log.log("Save")
+    log.log("WRITE")
 
     log.end()
 

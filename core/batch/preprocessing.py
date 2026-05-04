@@ -14,7 +14,7 @@ def preprocess():
         app_name="bronze_to_silver",
         stage="preprocess"
     )
-    log.log("Spark session created")
+    log.log("SPARK")
 
     dt = datetime.strptime(config.PROCESS_DATE, "%Y-%m-%d")
 
@@ -29,7 +29,7 @@ def preprocess():
     )
 
     df = spark.read.parquet(bronze_path)
-    log.log(f"Load bronze ({df.rdd.getNumPartitions()} partitions)")
+    log.log("READ")
 
     schema = StructType([
         StructField("Dst Port", IntegerType(), True),
@@ -140,16 +140,13 @@ def preprocess():
         F.col(field.name).cast(field.dataType).alias(field.name)
         for field in schema.fields
     ])
-    log.log("Schema cast")
 
     df = df.withColumn(
         "Timestamp",
         F.to_timestamp(F.col("Timestamp"), "dd/MM/yyyy HH:mm:ss")
     )
-    log.log("Timestamp parse")
 
     df = df.na.drop()
-    log.log("Drop nulls")
 
     float_cols = [
         f.name for f in schema.fields
@@ -161,10 +158,10 @@ def preprocess():
     )
     df = df.filter(condition)
     df = df.dropDuplicates()
-    log.log("Filter + deduplicate")
+    log.log("CLEAN")
 
     df.write.mode("overwrite").parquet(silver_path)
-    log.log("Write silver")
+    log.log("WRITE")
 
     log.end()
 

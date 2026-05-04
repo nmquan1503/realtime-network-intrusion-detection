@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 import boto3
 import io
+from logger import Logger
 
 
 def create_consumer():
@@ -24,10 +25,9 @@ def create_consumer():
                 fetch_max_bytes=config.KAFKA_BATCH_SIZE,
             )
         except Exception as e:
-            print(f"[Kafka] Not available yet, retrying in 5s... Error: {e}")
+            print(e)
             time.sleep(5)
 
-    print("[Kafka] Consumer created!")
     return consumer
 
 
@@ -69,23 +69,21 @@ def save_to_minio(batch):
                 Key=object_key,
                 Body=buffer.getvalue(),
             )
-
-            print(
-                f"[MinIO] Saved {len(df)} records "
-                f"to s3://{config.MINIO_BUCKET}/{object_key}"
-            )
             return True
 
         except Exception as e:
             attempts += 1
-            print(f"[MinIO] Write attempt {attempts} failed: {e}")
             time.sleep(config.MINIO_RETRY_DELAY)
 
     return False
 
 
 def consume():
+    log = Logger("BATCH-CONSUMER")
+    log.start()
+
     consumer = create_consumer()
+    log.log("KAFKA")
 
     batch = []
     last_flush = time.time()
@@ -93,8 +91,9 @@ def consume():
 
     while True:
         records = consumer.poll(timeout_ms=1000)
+        log.log("POLL")
+        
         has_message = False
-
         for tp, messages in records.items():
             if messages:
                 has_message = True
@@ -104,29 +103,34 @@ def consume():
 
                 if len(batch) >= config.FLUSH_SIZE:
                     success = save_to_minio(batch)
+                    log.log("WRITE")
 
                     if success:
                         consumer.commit()
+                        log.log("COMMIT")
                         batch = []
                         last_flush = time.time()
+        
 
         if not has_message:
             idle_count += 1
-            print(f"[IDLE] {idle_count}/10")
-
             if idle_count >= 10:
                 break
         else:
             idle_count = 0
 
         if time.time() - last_flush >= config.MAX_SILENCE_TIME:
-            print("[EXIT] batch window finished (no flush activity)")
             break
 
     # final flush
     success = save_to_minio(batch)
+    log.log("FINAL_WRITE")
+
     if success:
         consumer.commit()
+        log.log("FINAL_COMMIT")
+    
+    log.end()
 
 
 if __name__ == "__main__":
