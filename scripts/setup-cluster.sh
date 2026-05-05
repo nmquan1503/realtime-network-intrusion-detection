@@ -70,10 +70,3 @@ kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisione
 echo "==> Create ConfigMap from .env..."
 kubectl create configmap config --from-env-file=.env -n bigdata --dry-run=client -o yaml | kubectl apply -f -
 
-
-
-# # --------------------------------------------------
-# # Setup RustFS Helm repo
-# # --------------------------------------------------
-# helm repo add rustfs https://charts.rustfs.com
-# helm repo update
