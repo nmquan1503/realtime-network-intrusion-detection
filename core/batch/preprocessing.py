@@ -1,44 +1,20 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import *
+from functools import reduce
 from datetime import datetime
 import config
-import os
-
-
-def create_spark():
-    pod_ip = os.getenv("POD_IP")
-
-    return (
-        SparkSession.builder
-        .appName("CICIDS2018 Bronze To Silver")
-        .master("spark://spark-master-svc:7077")
-        .config("spark.driver.host", pod_ip)
-        .config("spark.driver.bindAddress", "0.0.0.0")
-
-        # =========================
-        # MinIO S3A
-        # =========================
-        .config("spark.hadoop.fs.s3a.endpoint", config.MINIO_ENDPOINT)
-        .config("spark.hadoop.fs.s3a.access.key", config.MINIO_ACCESS_KEY)
-        .config("spark.hadoop.fs.s3a.secret.key", config.MINIO_SECRET_KEY)
-        .config("spark.hadoop.fs.s3a.path.style.access", "true")
-        .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
-        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-
-        # =========================
-        # Spark tuning (dev)
-        # =========================
-        .config("spark.sql.adaptive.enabled", "true")
-        .config("spark.sql.shuffle.partitions", "4")
-        .config("spark.dynamicAllocation.enabled", "false")
-        .config("spark.executor.instances", "1")
-        .config("spark.executor.memory", "512m")
-        .config("spark.executor.cores", "1")
-        .getOrCreate()
-    )
-
+from logger import Logger
+from spark_session import create_spark
 
 def preprocess():
-    spark = create_spark()
+    log = Logger("BRONZE → SILVER")
+    log.start()
+    
+    spark = create_spark(
+        app_name="bronze_to_silver",
+        stage="preprocess"
+    )
+    log.log("SPARK")
 
     dt = datetime.strptime(config.PROCESS_DATE, "%Y-%m-%d")
 
@@ -52,30 +28,142 @@ def preprocess():
         f"year={dt.year}/month={dt.month:02d}/day={dt.day:02d}/"
     )
 
-    print(f"[Preprocessing] PROCESS_DATE={config.PROCESS_DATE}")
-    print(f"[Preprocessing] Reading bronze data from: {bronze_path}")
-
     df = spark.read.parquet(bronze_path)
+    log.log("READ")
 
-    raw_count = df.count()
-    print(f"[Preprocessing] Bronze rows: {raw_count}")
+    schema = StructType([
+        StructField("Dst Port", IntegerType(), True),
+        StructField("Protocol", IntegerType(), True),
+        StructField("Timestamp", StringType(), True),
 
-    # basic cleaning
-    df = df.dropDuplicates()
+        StructField("Flow Duration", LongType(), True),
+        StructField("Tot Fwd Pkts", LongType(), True),
+        StructField("Tot Bwd Pkts", LongType(), True),
+        StructField("TotLen Fwd Pkts", LongType(), True),
+        StructField("TotLen Bwd Pkts", LongType(), True),
 
-    clean_count = df.count()
-    print(f"[Preprocessing] Silver rows after dedup: {clean_count}")
+        StructField("Fwd Pkt Len Max", LongType(), True),
+        StructField("Fwd Pkt Len Min", LongType(), True),
+        StructField("Fwd Pkt Len Mean", DoubleType(), True),
+        StructField("Fwd Pkt Len Std", DoubleType(), True),
 
-    print(f"[Preprocessing] Writing silver to: {silver_path}")
+        StructField("Bwd Pkt Len Max", LongType(), True),
+        StructField("Bwd Pkt Len Min", LongType(), True),
+        StructField("Bwd Pkt Len Mean", DoubleType(), True),
+        StructField("Bwd Pkt Len Std", DoubleType(), True),
 
-    (
-        df.write
-        .mode("overwrite")
-        .parquet(silver_path)
+        StructField("Flow Byts/s", DoubleType(), True),
+        StructField("Flow Pkts/s", DoubleType(), True),
+
+        StructField("Flow IAT Mean", DoubleType(), True),
+        StructField("Flow IAT Std", DoubleType(), True),
+        StructField("Flow IAT Max", LongType(), True),
+        StructField("Flow IAT Min", LongType(), True),
+
+        StructField("Fwd IAT Tot", LongType(), True),
+        StructField("Fwd IAT Mean", DoubleType(), True),
+        StructField("Fwd IAT Std", DoubleType(), True),
+        StructField("Fwd IAT Max", LongType(), True),
+        StructField("Fwd IAT Min", LongType(), True),
+
+        StructField("Bwd IAT Tot", LongType(), True),
+        StructField("Bwd IAT Mean", DoubleType(), True),
+        StructField("Bwd IAT Std", DoubleType(), True),
+        StructField("Bwd IAT Max", LongType(), True),
+        StructField("Bwd IAT Min", LongType(), True),
+
+        StructField("Fwd PSH Flags", IntegerType(), True),
+        StructField("Bwd PSH Flags", IntegerType(), True),
+        StructField("Fwd URG Flags", IntegerType(), True),
+        StructField("Bwd URG Flags", IntegerType(), True),
+
+        StructField("Fwd Header Len", LongType(), True),
+        StructField("Bwd Header Len", LongType(), True),
+
+        StructField("Fwd Pkts/s", DoubleType(), True),
+        StructField("Bwd Pkts/s", DoubleType(), True),
+
+        StructField("Pkt Len Min", LongType(), True),
+        StructField("Pkt Len Max", LongType(), True),
+        StructField("Pkt Len Mean", DoubleType(), True),
+        StructField("Pkt Len Std", DoubleType(), True),
+        StructField("Pkt Len Var", DoubleType(), True),
+
+        StructField("FIN Flag Cnt", IntegerType(), True),
+        StructField("SYN Flag Cnt", IntegerType(), True),
+        StructField("RST Flag Cnt", IntegerType(), True),
+        StructField("PSH Flag Cnt", IntegerType(), True),
+        StructField("ACK Flag Cnt", IntegerType(), True),
+        StructField("URG Flag Cnt", IntegerType(), True),
+        StructField("CWE Flag Count", IntegerType(), True),
+        StructField("ECE Flag Cnt", IntegerType(), True),
+
+        StructField("Down/Up Ratio", DoubleType(), True),
+
+        StructField("Pkt Size Avg", DoubleType(), True),
+        StructField("Fwd Seg Size Avg", DoubleType(), True),
+        StructField("Bwd Seg Size Avg", DoubleType(), True),
+
+        StructField("Fwd Byts/b Avg", LongType(), True),
+        StructField("Fwd Pkts/b Avg", LongType(), True),
+        StructField("Fwd Blk Rate Avg", LongType(), True),
+        StructField("Bwd Byts/b Avg", LongType(), True),
+        StructField("Bwd Pkts/b Avg", LongType(), True),
+        StructField("Bwd Blk Rate Avg", LongType(), True),
+
+        StructField("Subflow Fwd Pkts", LongType(), True),
+        StructField("Subflow Fwd Byts", LongType(), True),
+        StructField("Subflow Bwd Pkts", LongType(), True),
+        StructField("Subflow Bwd Byts", LongType(), True),
+
+        StructField("Init Fwd Win Byts", LongType(), True),
+        StructField("Init Bwd Win Byts", LongType(), True),
+
+        StructField("Fwd Act Data Pkts", LongType(), True),
+        StructField("Fwd Seg Size Min", LongType(), True),
+
+        StructField("Active Mean", DoubleType(), True),
+        StructField("Active Std", DoubleType(), True),
+        StructField("Active Max", LongType(), True),
+        StructField("Active Min", LongType(), True),
+
+        StructField("Idle Mean", DoubleType(), True),
+        StructField("Idle Std", DoubleType(), True),
+        StructField("Idle Max", LongType(), True),
+        StructField("Idle Min", LongType(), True),
+
+        StructField("Label", StringType(), True),
+    ])
+
+    df = df.select(*[f.name for f in schema.fields])
+    df = df.select([
+        F.col(field.name).cast(field.dataType).alias(field.name)
+        for field in schema.fields
+    ])
+
+    df = df.withColumn(
+        "Timestamp",
+        F.to_timestamp(F.col("Timestamp"), "dd/MM/yyyy HH:mm:ss")
     )
 
-    print("[Preprocessing] Bronze → Silver done!")
+    df = df.na.drop()
 
+    float_cols = [
+        f.name for f in schema.fields
+        if isinstance(f.dataType, DoubleType)
+    ]
+    condition = reduce(
+        lambda a, b: a & b,
+        [(F.col(c) != float("inf")) & (F.col(c) != float("-inf")) for c in float_cols]
+    )
+    df = df.filter(condition)
+    df = df.dropDuplicates()
+    log.log("CLEAN")
+
+    df.write.mode("overwrite").parquet(silver_path)
+    log.log("WRITE")
+
+    log.end()
 
 if __name__ == "__main__":
     preprocess()
