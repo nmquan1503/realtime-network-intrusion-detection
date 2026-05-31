@@ -34,7 +34,20 @@ def train():
     df = spark.read.parquet(gold_base_path)
     log.log("READ")
 
-    feature_cols = ["Label"]    # I'll update later
+    feature_cols = [
+        'Fwd Seg Size Min', 'Fwd IAT Tot', 'Flow Duration', 'Init Fwd Win Byts',
+        'Bwd Pkts/s', 'Flow IAT Max', 'Fwd IAT Max', 'Fwd Header Len', 'Bwd IAT Tot',
+        'Flow IAT Mean', 'Fwd IAT Mean', 'byte_ratio', 'Subflow Fwd Byts',
+        'is_well_known_port', 'Dst Port', 'TotLen Fwd Pkts', 'Fwd IAT Min',
+        'Flow IAT Min', 'Flow Pkts/s', 'TotLen Bwd Pkts', 'Fwd Pkts/s',
+        'Subflow Bwd Byts', 'is_web_port', 'Bwd Header Len', 'pkt_ratio',
+        'Bwd Pkt Len Max', 'Pkt Len Max', 'Idle Max', 'Idle Min', 'Idle Mean',
+        'Bwd Pkt Len Std', 'Fwd Seg Size Avg', 'Fwd Pkt Len Mean', 'Bwd IAT Max',
+        'Pkt Len Var', 'Pkt Len Std', 'Flow Byts/s', 'Subflow Bwd Pkts',
+        'Fwd Pkts/b Avg', 'Tot Bwd Pkts', 'Fwd Pkt Len Max', 'Tot Fwd Pkts',
+        'Protocol', 'Pkt Size Avg', 'Bwd IAT Mean', 'Bwd Seg Size Avg',
+        'Bwd Pkt Len Mean', 'Pkt Len Mean', 'Subflow Fwd Pkts', 'bytes_per_pkt'
+    ]
 
     label_indexer = StringIndexer(
         inputCol="Label",
