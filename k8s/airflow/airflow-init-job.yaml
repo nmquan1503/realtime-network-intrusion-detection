@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: airflow-init
+  namespace: bigdata
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: airflow-init
+    spec:
+      serviceAccountName: airflow-sa
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 0
+      containers:
+        - name: airflow-init
+          image: mquan1503/bigdata-airflow:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              airflow db migrate && \
+              airflow users create \
+                --username "${AIRFLOW_ADMIN_USERNAME}" \
+                --password "${AIRFLOW_ADMIN_PASSWORD}" \
+                --firstname "${AIRFLOW_ADMIN_FIRSTNAME}" \
+                --lastname "${AIRFLOW_ADMIN_LASTNAME}" \
+                --role Admin \
+                --email "${AIRFLOW_ADMIN_EMAIL}" || true
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: airflow-secrets
+          volumeMounts:
+            - name: airflow-logs
+              mountPath: /opt/airflow/logs
+      volumes:
+        - name: airflow-logs
+          persistentVolumeClaim:
+            claimName: airflow-logs-pvc

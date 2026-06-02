@@ -18,9 +18,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: config
-          volumeMounts:
-            - name: batch-data
-              mountPath: /data/csv
           resources:
             limits:
               memory: "4Gi"
@@ -29,8 +26,3 @@ spec:
               memory: "2Gi"
               cpu: "1"
       restartPolicy: Never
-      volumes:
-        - name: batch-data
-          hostPath:
-            path: $PROJECT_PATH/data/batch
-            type: Directory

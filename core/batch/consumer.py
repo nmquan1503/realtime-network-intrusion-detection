@@ -45,6 +45,7 @@ def save_to_minio(batch):
         region_name="us-east-1",
     )
 
+    process_dt = datetime.strptime(config.PROCESS_DATE, "%Y-%m-%d")
     now = datetime.now()
     filename = f"batch_{now.strftime('%H%M%S_%f')}.parquet"
 
@@ -52,7 +53,7 @@ def save_to_minio(batch):
     # key = bronze/...
     object_key = (
         f"bronze/"
-        f"year={now.year}/month={now.month:02d}/day={now.day:02d}/"
+        f"year={process_dt.year}/month={process_dt.month:02d}/day={process_dt.day:02d}/"
         f"{filename}"
     )
 

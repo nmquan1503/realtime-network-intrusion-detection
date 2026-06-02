@@ -22,11 +22,16 @@ spec:
           envFrom:
             - configMapRef:
                 name: config
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
 
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "100m"
+              memory: "4Gi"
+              cpu: "2"
             limits:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: "6Gi"
+              cpu: "3"

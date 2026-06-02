@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: airflow-secrets
+  namespace: bigdata
+type: Opaque
+stringData:
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres.bigdata.svc.cluster.local:5432/airflow
+  AIRFLOW__CORE__FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  AIRFLOW__WEBSERVER__SECRET_KEY: airflow-webserver-demo-secret
+  AIRFLOW_ADMIN_USERNAME: admin
+  AIRFLOW_ADMIN_PASSWORD: admin
+  AIRFLOW_ADMIN_FIRSTNAME: Airflow
+  AIRFLOW_ADMIN_LASTNAME: Admin
+  AIRFLOW_ADMIN_EMAIL: admin@example.com
+  POSTGRES_PASSWORD: airflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-config
+  namespace: bigdata
+data:
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+  AIRFLOW__KUBERNETES__NAMESPACE: bigdata
+  AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+  AIRFLOW__WEBSERVER__WORKERS: "2"
+  AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: "600"
+  AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: "600"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: airflow-logs-pvc
+  namespace: bigdata
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-webserver
+  namespace: bigdata
+spec:
+  selector:
+    app: airflow-webserver
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

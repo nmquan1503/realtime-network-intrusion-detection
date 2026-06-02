@@ -3,10 +3,11 @@ FROM apache/airflow:2.9.0-python3.12
 ENV AIRFLOW__CORE__LOAD_EXAMPLES=False
 
 USER root
-RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir \
+    apache-airflow-providers-cncf-kubernetes \
+    psycopg2-binary
 
 USER airflow
 
-COPY ../orchestration/airflow/dags /opt/airflow/dags
-
-CMD bash -c "airflow db init && airflow scheduler & airflow webserver"
+COPY orchestration/airflow/dags /opt/airflow/dags
