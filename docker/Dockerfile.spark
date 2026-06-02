@@ -1,11 +1,20 @@
-FROM apache/spark:4.0.2
+FROM apache/spark:4.0.2-python3
+
+WORKDIR /app
 
 USER root
+
+COPY core/batch/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 RUN mkdir -p /opt/spark/jars && \
     cd /opt/spark/jars && \
     wget -q https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar && \
     wget -q https://repo1.maven.org/maven2/software/amazon/awssdk/bundle/2.29.52/bundle-2.29.52.jar && \
     chmod 644 /opt/spark/jars/*.jar
+
+ENV PYSPARK_PYTHON=python3
+ENV PYSPARK_DRIVER_PYTHON=python3
+ENV PYTHONPATH="/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.9-src.zip:/opt/spark/python/lib/pyspark.zip"
 
 USER spark

@@ -6,6 +6,23 @@ import config
 from logger import Logger
 from spark_session import create_spark
 
+def quote_column(column_name):
+    return f"`{column_name.replace('`', '``')}`"
+
+
+def safe_cast_column(field):
+    source = quote_column(field.name)
+
+    if isinstance(field.dataType, IntegerType):
+        return F.expr(f"try_cast({source} as int)").alias(field.name)
+    if isinstance(field.dataType, LongType):
+        return F.expr(f"try_cast({source} as bigint)").alias(field.name)
+    if isinstance(field.dataType, DoubleType):
+        return F.expr(f"try_cast({source} as double)").alias(field.name)
+
+    return F.col(field.name).cast(field.dataType).alias(field.name)
+
+
 def preprocess():
     log = Logger("BRONZE → SILVER")
     log.start()
@@ -136,14 +153,11 @@ def preprocess():
     ])
 
     df = df.select(*[f.name for f in schema.fields])
-    df = df.select([
-        F.col(field.name).cast(field.dataType).alias(field.name)
-        for field in schema.fields
-    ])
+    df = df.select([safe_cast_column(field) for field in schema.fields])
 
     df = df.withColumn(
         "Timestamp",
-        F.to_timestamp(F.col("Timestamp"), "dd/MM/yyyy HH:mm:ss")
+        F.expr("try_to_timestamp(`Timestamp`, 'dd/MM/yyyy HH:mm:ss')")
     )
 
     df = df.na.drop()

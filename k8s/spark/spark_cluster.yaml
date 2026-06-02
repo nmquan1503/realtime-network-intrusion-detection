@@ -16,6 +16,7 @@ spec:
       containers:
       - name: spark-master
         image: mquan1503/bigdata-spark:latest  # <--- Switched to Official Image
+        imagePullPolicy: IfNotPresent
         command: [
           "/opt/spark/bin/spark-class", 
           "org.apache.spark.deploy.master.Master"
@@ -53,6 +54,7 @@ spec:
       containers:
       - name: spark-worker
         image: mquan1503/bigdata-spark:latest # <--- Switched to Official Image
+        imagePullPolicy: IfNotPresent
         command: [
           "/opt/spark/bin/spark-class", 
           "org.apache.spark.deploy.worker.Worker",

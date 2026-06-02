@@ -1,9 +1,10 @@
 kafka-python
 # hdfs
-pyspark
+# PySpark is provided by the apache/spark base image.
 # mysql-connector-python
 boto3
 pyarrow
 pandas
 lz4
 xgboost
+scikit-learn

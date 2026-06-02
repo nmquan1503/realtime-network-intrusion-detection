@@ -16,7 +16,7 @@ def create_spark(app_name: str, stage: str):
     builder = (
         SparkSession.builder
         .appName(app_name)
-        .master("spark://spark-master-svc:7077")
+        .master(config.SPARK_MASTER_URL)
         .config("spark.driver.host", pod_ip)
         .config("spark.driver.bindAddress", "0.0.0.0")
 
@@ -34,6 +34,8 @@ def create_spark(app_name: str, stage: str):
 
         # ===== SERIALIZER =====
         .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .config("spark.pyspark.python", "python3")
+        .config("spark.pyspark.driver.python", "python3")
 
         # ===== COMPRESSION =====
         .config("spark.shuffle.compress", "true")
@@ -89,6 +91,7 @@ def create_spark(app_name: str, stage: str):
     print("\n========== SPARK CONFIG ==========")
     print(f"APP: {app_name}")
     print(f"STAGE: {stage}")
+    print(f"master: {spark.sparkContext.master}")
     print(f"executors: {spark.conf.get('spark.executor.instances')}")
     print(f"cores: {spark.conf.get('spark.executor.cores')}")
     print(f"memory: {spark.conf.get('spark.executor.memory')}")

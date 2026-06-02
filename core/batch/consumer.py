@@ -31,11 +31,19 @@ def create_consumer():
     return consumer
 
 
+def normalize_for_parquet(df):
+    for column in df.columns:
+        df[column] = df[column].apply(
+            lambda value: None if pd.isna(value) else str(value)
+        )
+    return df
+
+
 def save_to_minio(batch):
     if not batch:
         return False
 
-    df = pd.DataFrame(batch)
+    df = normalize_for_parquet(pd.DataFrame(batch))
 
     s3 = boto3.client(
         "s3",

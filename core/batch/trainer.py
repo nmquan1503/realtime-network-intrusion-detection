@@ -1,6 +1,7 @@
 import config
 from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 from pyspark.sql.functions import col
 from pyspark.ml.feature import VectorAssembler, StringIndexer
 from pyspark.ml.classification import RandomForestClassifier
@@ -63,7 +64,6 @@ def train():
         features_col="features",
         label_col="label",
         prediction_col="prediction",
-        objective="multi:softprob",
         num_class=7,
         max_depth=6,
         eta=0.1,
@@ -129,9 +129,18 @@ def train():
         .otherwise(2 * col("precision") * col("recall") / (col("precision") + col("recall")))
     )
 
+    metrics_schema = StructType([
+        StructField("type", StringType(), False),
+        StructField("label", DoubleType(), True),
+        StructField("precision", DoubleType(), True),
+        StructField("recall", DoubleType(), True),
+        StructField("accuracy", DoubleType(), True),
+        StructField("f1", DoubleType(), True),
+    ])
+
     global_metrics = spark.createDataFrame(
         [("global", None, None, None, acc, f1)],
-        ["type", "label", "precision", "recall", "accuracy", "f1"]
+        metrics_schema
     )
 
     per_class_metrics = per_class.select(

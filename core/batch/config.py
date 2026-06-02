@@ -16,6 +16,11 @@ MINIO_BUCKET = os.getenv("MINIO_BUCKET")
 MINIO_RETRY_COUNT = int(os.getenv("MINIO_RETRY_COUNT"))
 MINIO_RETRY_DELAY = int(os.getenv("MINIO_RETRY_DELAY"))
 
+SPARK_MASTER_URL = os.getenv(
+    "SPARK_MASTER_URL",
+    "spark://spark-master-svc.bigdata.svc.cluster.local:7077"
+)
+
 PROCESS_DATE = os.getenv(
     "PROCESS_DATE",
     datetime.now().strftime("%Y-%m-%d")
