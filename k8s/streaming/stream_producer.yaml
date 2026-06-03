@@ -1,41 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: batch-producer
+  name: stream-producer
   namespace: bigdata
   labels:
-    app: batch-producer
+    app: stream-producer
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: batch-producer
+      app: stream-producer
   template:
     metadata:
       labels:
-        app: batch-producer
+        app: stream-producer
     spec:
       containers:
-        - name: batch-producer
+        - name: stream-producer
           image: mquan1503/bigdata-simulator:latest
           imagePullPolicy: IfNotPresent
-          command: ["python", "-u", "/app/batch_producer.py"]
+          command: ["python", "-u", "/app/stream_producer.py"]
           envFrom:
             - configMapRef:
                 name: config
           env:
-            - name: BATCH_LOOP_FILES
+            - name: STREAMING_KAFKA_TOPIC
+              value: stream-topic
+            - name: STREAM_SEND_INTERVAL_MS
+              value: "50"
+            - name: STREAM_LOOP_FILES
               value: "false"
-            - name: BATCH_LOOP_SLEEP_SEC
-              value: "300"
             - name: PRODUCER_IDLE_AFTER_COMPLETE
               value: "true"
             - name: PRODUCER_IDLE_SLEEP_SEC
               value: "3600"
           resources:
             requests:
-              cpu: "1"
-              memory: "2Gi"
+              cpu: "250m"
+              memory: "512Mi"
             limits:
-              cpu: "2"
-              memory: "4Gi"
+              cpu: "1"
+              memory: "1Gi"

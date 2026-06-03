@@ -7,3 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY core/simulator /app
 COPY data/batch /data/csv
+COPY data/streaming /data/streaming

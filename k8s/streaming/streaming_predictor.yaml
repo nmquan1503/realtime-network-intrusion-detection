@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streaming-predictor
+  namespace: bigdata
+  labels:
+    app: streaming-predictor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: streaming-predictor
+  template:
+    metadata:
+      labels:
+        app: streaming-predictor
+    spec:
+      containers:
+        - name: streaming-predictor
+          image: mquan1503/bigdata-streaming:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "-u", "/app/streaming_job.py"]
+          envFrom:
+            - configMapRef:
+                name: config
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: STREAMING_KAFKA_TOPIC
+              value: stream-topic
+            - name: PREDICTION_KAFKA_TOPIC
+              value: prediction-topic
+            - name: STREAMING_KAFKA_GROUP_ID
+              value: streaming-predictor
+            - name: STREAMING_AUTO_OFFSET_RESET
+              value: latest
+            - name: MODEL_RELOAD_INTERVAL_SEC
+              value: "60"
+            - name: PREDICT_BATCH_SIZE
+              value: "200"
+          resources:
+            requests:
+              cpu: "1"
+              memory: "3Gi"
+            limits:
+              cpu: "2"
+              memory: "5Gi"

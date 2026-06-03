@@ -1,1 +1,7 @@
 kafka-python
+boto3
+pandas
+pyarrow
+xgboost
+lz4
+scikit-learn

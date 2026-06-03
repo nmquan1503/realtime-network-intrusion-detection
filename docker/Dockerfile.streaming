@@ -1,10 +1,20 @@
-FROM python:3.12-slim
+FROM apache/spark:4.0.2-python3
 
 WORKDIR /app
+ENV PYTHONPATH="/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.9-src.zip:/opt/spark/python/lib/pyspark.zip"
 
-COPY core/streaming/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY core/streaming/requirements.txt /app/requirements.txt
+USER root
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY core/streaming .
+RUN mkdir -p /opt/spark/jars && \
+    cd /opt/spark/jars && \
+    wget -q https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar && \
+    wget -q https://repo1.maven.org/maven2/software/amazon/awssdk/bundle/2.29.52/bundle-2.29.52.jar && \
+    chmod 644 /opt/spark/jars/*.jar
 
-CMD ["python", "streaming_job.py"]
+COPY core/streaming /app
+
+USER spark
+
+CMD ["python3", "-u", "/app/streaming_job.py"]

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from airflow.sensors.time_delta import TimeDeltaSensor
 from kubernetes.client import models as k8s
 
 
@@ -20,7 +21,6 @@ POD_IP_ENV = k8s.V1EnvVar(
     ),
 )
 
-SIMULATOR_IMAGE = "mquan1503/bigdata-simulator:latest"
 BATCH_IMAGE = "mquan1503/bigdata-batch:latest"
 
 
@@ -82,15 +82,6 @@ with DAG(
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    produce_batch_data = build_batch_task(
-        dag=dag,
-        task_id="produce_batch_data",
-        image=SIMULATOR_IMAGE,
-        command=["python", "-u", "/app/batch_producer.py"],
-        env_vars=[PROCESS_DATE_ENV],
-        resources=build_resources("1", "2Gi", "2", "4Gi"),
-    )
-
     consume_kafka_to_bronze = build_batch_task(
         dag=dag,
         task_id="consume_kafka_to_bronze",
@@ -127,6 +118,13 @@ with DAG(
         resources=build_resources("2", "4Gi", "3", "6Gi"),
     )
 
-    start >> produce_batch_data >> consume_kafka_to_bronze
+    wait_streaming_model_reload = TimeDeltaSensor(
+        task_id="wait_streaming_model_reload",
+        delta=timedelta(seconds=75),
+        mode="reschedule",
+    )
+
+    start >> consume_kafka_to_bronze
     consume_kafka_to_bronze >> preprocess_bronze_to_silver
-    preprocess_bronze_to_silver >> feature_engineering >> train_model >> end
+    preprocess_bronze_to_silver >> feature_engineering >> train_model
+    train_model >> wait_streaming_model_reload >> end
