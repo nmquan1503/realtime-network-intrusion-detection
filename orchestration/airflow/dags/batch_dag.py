@@ -97,7 +97,7 @@ with DAG(
         image=BATCH_IMAGE,
         command=["python3", "-u", "/app/preprocessing.py"],
         env_vars=[PROCESS_DATE_ENV, POD_IP_ENV],
-        resources=build_resources("1", "3Gi", "2", "4Gi"),
+        resources=build_resources("500m", "1536Mi", "1500m", "3Gi"),
     )
 
     feature_engineering = build_batch_task(
@@ -106,7 +106,7 @@ with DAG(
         image=BATCH_IMAGE,
         command=["python3", "-u", "/app/feature_engineering.py"],
         env_vars=[PROCESS_DATE_ENV, POD_IP_ENV],
-        resources=build_resources("1", "3Gi", "2", "4Gi"),
+        resources=build_resources("1", "2Gi", "2", "4Gi"),
     )
 
     train_model = build_batch_task(
@@ -115,7 +115,7 @@ with DAG(
         image=BATCH_IMAGE,
         command=["python3", "-u", "/app/trainer.py"],
         env_vars=[PROCESS_DATE_ENV, POD_IP_ENV],
-        resources=build_resources("2", "4Gi", "3", "6Gi"),
+        resources=build_resources("1", "3Gi", "2", "5Gi"),
     )
 
     wait_streaming_model_reload = TimeDeltaSensor(

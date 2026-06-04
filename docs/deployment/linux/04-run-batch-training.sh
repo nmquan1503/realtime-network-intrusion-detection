@@ -7,7 +7,7 @@ DAG_ID="${DAG_ID:-batch_training_pipeline_k8s}"
 kubectl delete job/batch-producer -n "$NAMESPACE" --ignore-not-found=true
 kubectl wait --for=delete job/batch-producer -n "$NAMESPACE" --timeout=60s >/dev/null 2>&1 || true
 kubectl apply -f k8s/simulator/batch_producer.yaml -n "$NAMESPACE"
-kubectl wait --for=condition=complete job/batch-producer -n "$NAMESPACE" --timeout=900s
+kubectl wait --for=condition=complete job/batch-producer -n "$NAMESPACE" --timeout=3600s
 
 sleep 10
 

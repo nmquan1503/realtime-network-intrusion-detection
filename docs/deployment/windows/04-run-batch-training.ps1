@@ -11,7 +11,7 @@ Write-Host "==> Running batch producer Job once" -ForegroundColor Cyan
 kubectl delete job/batch-producer -n $Namespace --ignore-not-found=true
 kubectl wait --for=delete job/batch-producer -n $Namespace --timeout=60s *> $null
 kubectl apply -f k8s/simulator/batch_producer.yaml -n $Namespace
-kubectl wait --for=condition=complete job/batch-producer -n $Namespace --timeout=900s
+kubectl wait --for=condition=complete job/batch-producer -n $Namespace --timeout=3600s
 if ($LASTEXITCODE -ne 0) {
     throw "batch-producer Job did not complete successfully."
 }

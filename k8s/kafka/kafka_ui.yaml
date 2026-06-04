@@ -25,6 +25,13 @@ spec:
               value: "kafka-cluster-kafka-bootstrap:9092"
             - name: KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL
               value: "PLAINTEXT"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 # apiVersion: v1
 # kind: Service

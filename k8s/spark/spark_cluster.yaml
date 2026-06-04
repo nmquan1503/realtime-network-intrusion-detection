@@ -24,10 +24,19 @@ spec:
         env:
         - name: SPARK_MASTER_OPTS
           value: "-Dspark.master.rest.enabled=true -Dspark.master.rest.port=6066"
+        - name: SPARK_DAEMON_MEMORY
+          value: "512m"
         ports:
         - containerPort: 7077
         - containerPort: 6066
         - containerPort: 8080
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
         volumeMounts:
         - name: ivy-cache
           mountPath: /tmp
@@ -60,6 +69,20 @@ spec:
           "org.apache.spark.deploy.worker.Worker",
           "spark://spark-master-svc:7077"
         ]
+        env:
+        - name: SPARK_WORKER_CORES
+          value: "3"
+        - name: SPARK_WORKER_MEMORY
+          value: "5g"
+        - name: SPARK_DAEMON_MEMORY
+          value: "512m"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "3Gi"
+          limits:
+            cpu: "3"
+            memory: "6Gi"
         volumeMounts:
         - name: spark-work-dir 
           mountPath: /opt/spark/work

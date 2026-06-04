@@ -32,6 +32,13 @@ spec:
           volumeMounts:
             - name: storage
               mountPath: /data
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "750m"
+              memory: "1Gi"
 
   volumeClaimTemplates:
     - metadata:
@@ -41,4 +48,4 @@ spec:
         storageClassName: hostpath
         resources:
           requests:
-            storage: 2Gi
+            storage: 20Gi
