@@ -256,6 +256,8 @@ Deploy app services:
 .\docs\deployment\windows\03-deploy-apps.ps1
 ```
 
+Lệnh này deploy dashboard và streaming predictor. Producer được chạy theo Job ở bước `04` và `05`.
+
 Chạy batch training qua Airflow:
 
 ```powershell
@@ -329,6 +331,8 @@ Deploy apps:
 ```bash
 ./docs/deployment/linux/03-deploy-apps.sh
 ```
+
+Lệnh này deploy dashboard và streaming predictor. Producer được chạy theo Job ở bước `04` và `05`.
 
 Chạy batch training:
 
@@ -482,13 +486,23 @@ Cluster khác Docker Desktop không thấy local image:
 
 ## 15. Ghi Chú Vận Hành Demo
 
-Producer batch và streaming hiện không loop file. Khi gửi hết CSV, pod sẽ idle để tránh Kubernetes Deployment tự restart và gửi lại dữ liệu.
+Producer batch và streaming hiện chạy bằng Kubernetes Job và không loop file. Khi gửi hết CSV, Job sẽ `Completed` để không giữ tài nguyên chạy nền.
 
-Muốn chạy lại producer:
+Muốn chạy lại producer bằng script:
 
 ```bash
-kubectl rollout restart deployment/batch-producer -n bigdata
-kubectl rollout restart deployment/stream-producer -n bigdata
+bash docs/deployment/linux/04-run-batch-training.sh
+bash docs/deployment/linux/05-run-streaming-demo.sh
+```
+
+Muốn chạy lại thủ công thì xóa Job cũ rồi apply lại manifest:
+
+```bash
+kubectl delete job/batch-producer -n bigdata --ignore-not-found=true
+kubectl apply -f k8s/simulator/batch_producer.yaml -n bigdata
+
+kubectl delete job/stream-producer -n bigdata --ignore-not-found=true
+kubectl apply -f k8s/streaming/stream_producer.yaml -n bigdata
 ```
 
 Streaming predictor tự reload model mới nhất mỗi 60 giây. Sau khi trainer ghi model mới, dashboard sẽ chuyển sang model version mới sau khoảng 60-75 giây.

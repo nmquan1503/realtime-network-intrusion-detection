@@ -1,20 +1,19 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: batch-producer
   namespace: bigdata
   labels:
     app: batch-producer
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: batch-producer
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
   template:
     metadata:
       labels:
         app: batch-producer
     spec:
+      restartPolicy: Never
       containers:
         - name: batch-producer
           image: mquan1503/bigdata-simulator:latest
@@ -26,12 +25,8 @@ spec:
           env:
             - name: BATCH_LOOP_FILES
               value: "false"
-            - name: BATCH_LOOP_SLEEP_SEC
-              value: "300"
             - name: PRODUCER_IDLE_AFTER_COMPLETE
-              value: "true"
-            - name: PRODUCER_IDLE_SLEEP_SEC
-              value: "3600"
+              value: "false"
           resources:
             requests:
               cpu: "1"

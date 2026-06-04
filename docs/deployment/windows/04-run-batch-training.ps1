@@ -7,13 +7,17 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
 Set-Location $RepoRoot
 
-Write-Host "==> Ensuring batch producer deployment exists" -ForegroundColor Cyan
+Write-Host "==> Running batch producer Job once" -ForegroundColor Cyan
+kubectl delete job/batch-producer -n $Namespace --ignore-not-found=true
+kubectl wait --for=delete job/batch-producer -n $Namespace --timeout=60s *> $null
 kubectl apply -f k8s/simulator/batch_producer.yaml -n $Namespace
-kubectl rollout restart deployment/batch-producer -n $Namespace
-kubectl rollout status deployment/batch-producer -n $Namespace --timeout=180s
+kubectl wait --for=condition=complete job/batch-producer -n $Namespace --timeout=900s
+if ($LASTEXITCODE -ne 0) {
+    throw "batch-producer Job did not complete successfully."
+}
 
 Write-Host "==> Waiting briefly for batch data to enter Kafka" -ForegroundColor Cyan
-Start-Sleep -Seconds 30
+Start-Sleep -Seconds 10
 
 Write-Host "==> Triggering Airflow DAG $DagId" -ForegroundColor Cyan
 kubectl exec deployment/airflow-webserver -n $Namespace -- airflow dags unpause $DagId

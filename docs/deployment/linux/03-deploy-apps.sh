@@ -8,7 +8,4 @@ kubectl apply -f k8s/streaming/streaming_predictor.yaml -n "$NAMESPACE"
 kubectl rollout status deployment/dashboard -n "$NAMESPACE" --timeout=180s
 kubectl rollout status deployment/streaming-predictor -n "$NAMESPACE" --timeout=300s
 
-kubectl apply -f k8s/simulator/batch_producer.yaml -n "$NAMESPACE"
-kubectl apply -f k8s/streaming/stream_producer.yaml -n "$NAMESPACE"
-
-echo "==> Apps deployed. Use 04/05 scripts to restart producers intentionally."
+echo "==> Apps deployed. Use 04/05 scripts to run producer Jobs."

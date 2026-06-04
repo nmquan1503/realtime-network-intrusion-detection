@@ -1,20 +1,19 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: stream-producer
   namespace: bigdata
   labels:
     app: stream-producer
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: stream-producer
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
   template:
     metadata:
       labels:
         app: stream-producer
     spec:
+      restartPolicy: Never
       containers:
         - name: stream-producer
           image: mquan1503/bigdata-simulator:latest
@@ -31,9 +30,7 @@ spec:
             - name: STREAM_LOOP_FILES
               value: "false"
             - name: PRODUCER_IDLE_AFTER_COMPLETE
-              value: "true"
-            - name: PRODUCER_IDLE_SLEEP_SEC
-              value: "3600"
+              value: "false"
           resources:
             requests:
               cpu: "250m"

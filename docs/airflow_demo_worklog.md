@@ -16,10 +16,10 @@ Da tiep tuc mo rong project tu demo Airflow batch sang demo realtime streaming p
   - Dashboard realtime
 - Da them `core/simulator/stream_producer.py` de doc file CSV streaming va day tung row vao Kafka.
 - Da giu producer o che do khong loop file:
-  - Batch producer gui het file batch mot lan roi idle.
-  - Stream producer gui het file streaming mot lan roi idle.
-  - Muon demo lai thi restart deployment producer.
-- Da chinh batch producer thanh deployment chay nen thay vi job trong DAG.
+  - Batch producer gui het file batch mot lan roi ket thuc Job.
+  - Stream producer gui het file streaming mot lan roi ket thuc Job.
+  - Muon demo lai thi xoa Job cu va apply lai manifest bang script `04` hoac `05`.
+- Da chinh batch producer va stream producer sang Kubernetes Job de tiet kiem tai nguyen sau khi gui het file.
 - Da chinh Airflow DAG `batch_training_pipeline_k8s`:
   - Bo task `produce_batch_data` khoi DAG.
   - Flow moi:

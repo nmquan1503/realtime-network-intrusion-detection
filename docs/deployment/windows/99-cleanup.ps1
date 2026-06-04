@@ -13,7 +13,7 @@ if ($DeleteNamespace) {
     exit 0
 }
 
-Write-Host "==> Deleting app deployments" -ForegroundColor Yellow
+Write-Host "==> Deleting app workloads" -ForegroundColor Yellow
 kubectl delete -f k8s/streaming/stream_producer.yaml -n $Namespace --ignore-not-found
 kubectl delete -f k8s/streaming/streaming_predictor.yaml -n $Namespace --ignore-not-found
 kubectl delete -f k8s/dashboard/dashboard.yaml -n $Namespace --ignore-not-found
