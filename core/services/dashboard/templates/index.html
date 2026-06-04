@@ -160,6 +160,63 @@
       padding: 22px;
     }
 
+    .attack-history {
+      margin-top: 22px;
+      padding: 22px;
+    }
+
+    .timeline-panel {
+      margin-top: 22px;
+      padding: 22px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+
+    .section-note {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .timeline-legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      white-space: nowrap;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--good);
+    }
+
+    .timeline-chart {
+      margin-top: 18px;
+      min-height: 340px;
+      overflow: hidden;
+    }
+
+    .timeline-chart svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     .bars {
       display: grid;
       gap: 12px;
@@ -230,6 +287,17 @@
       color: var(--muted);
     }
 
+    .source-cell {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .empty-row {
+      color: var(--muted);
+      text-align: center;
+    }
+
     @media (max-width: 900px) {
       .hero, .content {
         grid-template-columns: 1fr;
@@ -297,10 +365,96 @@
         </table>
       </div>
     </section>
+
+    <section class="panel attack-history">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Attack Detection History</div>
+          <div class="section-note">Predictions classified as non-Benign are listed here.</div>
+        </div>
+        <div class="pill attack"><span id="attackHistoryCount">0</span>&nbsp;attacks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Event Time</th>
+            <th>Attack Type</th>
+            <th>Confidence</th>
+            <th>Actual</th>
+            <th>Source</th>
+            <th>Latency</th>
+          </tr>
+        </thead>
+        <tbody id="attackRows"></tbody>
+      </table>
+    </section>
+
+    <section class="panel timeline-panel">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Prediction Timeline</div>
+          <div class="section-note">Each dot is one scored event. Benign stays low; attacks rise by predicted label.</div>
+        </div>
+        <div class="timeline-legend" id="timelineLegend"></div>
+      </div>
+      <div class="timeline-chart" id="predictionTimeline"></div>
+    </section>
   </main>
 
   <script>
     const fmt = (value) => value === null || value === undefined ? "--" : value;
+    const escapeHtml = (value) => String(fmt(value))
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+    const labelOrder = ["Benign", "Bot", "BruteForce", "DoS", "DDoS", "WebAttack", "Infiltration", "Unknown"];
+    const labelColors = {
+      Benign: "#1c8a54",
+      Bot: "#d9971e",
+      BruteForce: "#315f8a",
+      DoS: "#c94932",
+      DDoS: "#8f3d75",
+      WebAttack: "#7a5c22",
+      Infiltration: "#5c6f36",
+      Unknown: "#657166",
+    };
+    let latestDashboardData = null;
+
+    function labelColor(label) {
+      return labelColors[label] || "#c94932";
+    }
+
+    function svgNode(name, attrs = {}) {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+      for (const [key, value] of Object.entries(attrs)) {
+        node.setAttribute(key, value);
+      }
+      return node;
+    }
+
+    function parseEventTime(value) {
+      if (!value) {
+        return null;
+      }
+
+      const match = String(value).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+      if (match) {
+        const [, day, month, year, hour, minute, second] = match;
+        return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+      }
+
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function formatTimeTick(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return "--";
+      }
+      return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
 
     function renderBars(labelCounts) {
       const bars = document.getElementById("bars");
@@ -331,19 +485,213 @@
           : `${(item.confidence * 100).toFixed(1)}%`;
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${fmt(item.event_time)}</td>
-          <td><span class="pill ${pillClass}">${fmt(label)}</span></td>
-          <td>${confidence}</td>
-          <td>${fmt(item.actual_label)}</td>
-          <td>${fmt(item.latency_ms)} ms</td>
+          <td>${escapeHtml(item.event_time)}</td>
+          <td><span class="pill ${pillClass}">${escapeHtml(label)}</span></td>
+          <td>${escapeHtml(confidence)}</td>
+          <td>${escapeHtml(item.actual_label)}</td>
+          <td>${escapeHtml(item.latency_ms)} ms</td>
         `;
         body.appendChild(row);
+      }
+    }
+
+    function renderAttackRows(items) {
+      const body = document.getElementById("attackRows");
+      const attacks = items || [];
+      body.innerHTML = "";
+      document.getElementById("attackHistoryCount").textContent = attacks.length;
+
+      if (!attacks.length) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td class="empty-row" colspan="6">No attack detections yet.</td>`;
+        body.appendChild(row);
+        return;
+      }
+
+      for (const item of attacks.slice(0, 80)) {
+        const confidence = item.confidence === null || item.confidence === undefined
+          ? "--"
+          : `${(item.confidence * 100).toFixed(1)}%`;
+        const source = item.source || {};
+        const dstPort = source.dst_port ?? source["Dst Port"] ?? "--";
+        const protocol = source.protocol ?? source.Protocol ?? "--";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${escapeHtml(item.event_time)}</td>
+          <td><span class="pill attack">${escapeHtml(item.predicted_label)}</span></td>
+          <td>${escapeHtml(confidence)}</td>
+          <td>${escapeHtml(item.actual_label)}</td>
+          <td class="source-cell">Dst Port: ${escapeHtml(dstPort)}<br>Protocol: ${escapeHtml(protocol)}</td>
+          <td>${escapeHtml(item.latency_ms)} ms</td>
+        `;
+        body.appendChild(row);
+      }
+    }
+
+    function orderedLabels(points) {
+      const seen = new Set(points.map((point) => point.label));
+      const ordered = labelOrder.filter((label) => seen.has(label));
+      const extras = [...seen].filter((label) => !labelOrder.includes(label)).sort();
+      return [...ordered, ...extras];
+    }
+
+    function renderTimelineLegend(labels) {
+      const legend = document.getElementById("timelineLegend");
+      const visibleLabels = labels.length ? labels : ["Benign"];
+      legend.innerHTML = visibleLabels.map((label) => `
+        <span class="legend-item">
+          <span class="legend-dot" style="background:${labelColor(label)}"></span>${escapeHtml(label)}
+        </span>
+      `).join("");
+    }
+
+    function renderPredictionTimeline(items) {
+      const container = document.getElementById("predictionTimeline");
+      const width = 980;
+      const height = 340;
+      const margin = { top: 24, right: 24, bottom: 46, left: 112 };
+      const plotWidth = width - margin.left - margin.right;
+      const plotHeight = height - margin.top - margin.bottom;
+
+      container.innerHTML = "";
+      const svg = svgNode("svg", {
+        viewBox: `0 0 ${width} ${height}`,
+        role: "img",
+        "aria-label": "Prediction timeline scatter chart",
+      });
+      container.appendChild(svg);
+
+      const rawPoints = (items || [])
+        .filter((item) => item.status === "ok" && item.predicted_label)
+        .slice(0, 160)
+        .map((item, index) => {
+          const eventDate = parseEventTime(item.event_time);
+          const fallbackDate = parseEventTime(item.prediction_time);
+          return {
+            item,
+            index,
+            label: item.predicted_label,
+            time: eventDate || fallbackDate,
+          };
+        });
+
+      if (!rawPoints.length) {
+        renderTimelineLegend([]);
+        const empty = svgNode("text", {
+          x: width / 2,
+          y: height / 2,
+          "text-anchor": "middle",
+          fill: "#657166",
+          "font-size": "18",
+          "font-weight": "700",
+        });
+        empty.textContent = "No scored events yet.";
+        svg.appendChild(empty);
+        return;
+      }
+
+      const points = rawPoints
+        .sort((a, b) => {
+          const left = a.time ? a.time.getTime() : a.index;
+          const right = b.time ? b.time.getTime() : b.index;
+          return left - right;
+        });
+      const labels = orderedLabels(points);
+      renderTimelineLegend(labels);
+      const labelIndex = new Map(labels.map((label, index) => [label, index]));
+      const times = points.map((point) => point.time?.getTime()).filter((time) => Number.isFinite(time));
+      const minTime = times.length ? Math.min(...times) : 0;
+      const maxTime = times.length ? Math.max(...times) : points.length - 1;
+      const timeSpan = Math.max(1, maxTime - minTime);
+      const yDenominator = Math.max(1, labels.length - 1);
+
+      const plot = svgNode("rect", {
+        x: margin.left,
+        y: margin.top,
+        width: plotWidth,
+        height: plotHeight,
+        rx: 16,
+        fill: "rgba(255,255,255,0.30)",
+        stroke: "rgba(23,32,23,0.10)",
+      });
+      svg.appendChild(plot);
+
+      for (const [index, label] of labels.entries()) {
+        const y = margin.top + plotHeight - (index / yDenominator) * plotHeight;
+        svg.appendChild(svgNode("line", {
+          x1: margin.left,
+          x2: margin.left + plotWidth,
+          y1: y,
+          y2: y,
+          stroke: "rgba(23,32,23,0.10)",
+          "stroke-dasharray": index === 0 ? "0" : "5 6",
+        }));
+
+        const text = svgNode("text", {
+          x: margin.left - 14,
+          y: y + 5,
+          "text-anchor": "end",
+          fill: labelColor(label),
+          "font-size": "14",
+          "font-weight": "800",
+        });
+        text.textContent = label;
+        svg.appendChild(text);
+      }
+
+      const tickCount = Math.min(5, points.length);
+      for (let tick = 0; tick < tickCount; tick += 1) {
+        const ratio = tickCount === 1 ? 0 : tick / (tickCount - 1);
+        const x = margin.left + ratio * plotWidth;
+        const tickTime = new Date(minTime + ratio * timeSpan);
+        svg.appendChild(svgNode("line", {
+          x1: x,
+          x2: x,
+          y1: margin.top + plotHeight,
+          y2: margin.top + plotHeight + 6,
+          stroke: "rgba(23,32,23,0.24)",
+        }));
+
+        const text = svgNode("text", {
+          x,
+          y: height - 14,
+          "text-anchor": "middle",
+          fill: "#657166",
+          "font-size": "13",
+          "font-weight": "700",
+        });
+        text.textContent = formatTimeTick(tickTime);
+        svg.appendChild(text);
+      }
+
+      for (const point of points) {
+        const timeValue = point.time ? point.time.getTime() : minTime + point.index;
+        const x = margin.left + ((timeValue - minTime) / timeSpan) * plotWidth;
+        const labelPosition = labelIndex.get(point.label) || 0;
+        const y = margin.top + plotHeight - (labelPosition / yDenominator) * plotHeight;
+        const isBenign = point.label === "Benign";
+        const color = labelColor(point.label);
+        const dot = svgNode("circle", {
+          cx: x,
+          cy: y,
+          r: isBenign ? 4.2 : 6,
+          fill: color,
+          opacity: isBenign ? "0.68" : "0.92",
+          stroke: "rgba(255,252,241,0.95)",
+          "stroke-width": isBenign ? "1" : "2",
+        });
+
+        const title = svgNode("title");
+        title.textContent = `${point.label} | ${fmt(point.item.event_time)} | confidence=${fmt(point.item.confidence)}`;
+        dot.appendChild(title);
+        svg.appendChild(dot);
       }
     }
 
     async function refresh() {
       const response = await fetch("/data");
       const data = await response.json();
+      latestDashboardData = data;
       document.getElementById("modelVersion").textContent = data.model_version || "waiting for predictions...";
       document.getElementById("total").textContent = data.total;
       document.getElementById("benign").textContent = data.benign_count;
@@ -353,7 +701,15 @@
       document.getElementById("latency").textContent = data.avg_latency_ms;
       renderBars(data.label_counts);
       renderRows(data.items);
+      renderAttackRows(data.attack_items);
+      renderPredictionTimeline(data.items);
     }
+
+    window.addEventListener("resize", () => {
+      if (latestDashboardData) {
+        renderPredictionTimeline(latestDashboardData.items);
+      }
+    });
 
     refresh();
     setInterval(refresh, 1000);

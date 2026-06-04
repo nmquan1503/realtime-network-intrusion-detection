@@ -15,12 +15,14 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv(
 PREDICTION_KAFKA_TOPIC = os.getenv("PREDICTION_KAFKA_TOPIC", "prediction-topic")
 DASHBOARD_KAFKA_GROUP_ID = os.getenv("DASHBOARD_KAFKA_GROUP_ID", "dashboard")
 DASHBOARD_MAX_ITEMS = int(os.getenv("DASHBOARD_MAX_ITEMS", "200"))
+DASHBOARD_ATTACK_HISTORY_MAX = int(os.getenv("DASHBOARD_ATTACK_HISTORY_MAX", "300"))
 THROUGHPUT_WINDOW_SEC = int(os.getenv("DASHBOARD_THROUGHPUT_WINDOW_SEC", "10"))
 
 app = Flask(__name__)
 
 state_lock = threading.Lock()
 recent_items = deque(maxlen=DASHBOARD_MAX_ITEMS)
+attack_items = deque(maxlen=DASHBOARD_ATTACK_HISTORY_MAX)
 prediction_timestamps = deque()
 label_counts = Counter()
 total_count = 0
@@ -77,7 +79,7 @@ def consume_predictions():
             if model_version:
                 latest_model_version = model_version
 
-            recent_items.appendleft({
+            dashboard_item = {
                 "status": status,
                 "event_time": item.get("event_time"),
                 "prediction_time": item.get("prediction_time"),
@@ -88,7 +90,11 @@ def consume_predictions():
                 "model_version": model_version,
                 "source": item.get("source", {}),
                 "error": item.get("error"),
-            })
+            }
+            recent_items.appendleft(dashboard_item)
+
+            if status == "ok" and predicted_label and predicted_label != "Benign":
+                attack_items.appendleft(dashboard_item)
 
 
 def start_consumer_thread():
@@ -118,6 +124,7 @@ def get_data():
             "throughput_window_sec": THROUGHPUT_WINDOW_SEC,
             "label_counts": dict(label_counts),
             "items": list(recent_items),
+            "attack_items": list(attack_items),
         })
 
 

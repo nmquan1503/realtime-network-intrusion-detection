@@ -1,6 +1,119 @@
 # Airflow demo worklog
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
+
+## Cap nhat 2026-06-04
+
+Da tiep tuc mo rong project tu demo Airflow batch sang demo realtime streaming prediction + dashboard.
+
+### Tong ket viec da hoan thanh
+
+- Da xay luong streaming rieng cho demo realtime:
+  - `data/streaming/*.csv`
+  - Kafka topic `stream-topic`
+  - `streaming-predictor`
+  - Kafka topic `prediction-topic`
+  - Dashboard realtime
+- Da them `core/simulator/stream_producer.py` de doc file CSV streaming va day tung row vao Kafka.
+- Da giu producer o che do khong loop file:
+  - Batch producer gui het file batch mot lan roi idle.
+  - Stream producer gui het file streaming mot lan roi idle.
+  - Muon demo lai thi restart deployment producer.
+- Da chinh batch producer thanh deployment chay nen thay vi job trong DAG.
+- Da chinh Airflow DAG `batch_training_pipeline_k8s`:
+  - Bo task `produce_batch_data` khoi DAG.
+  - Flow moi:
+
+```text
+start
+-> consume_kafka_to_bronze
+-> preprocess_bronze_to_silver
+-> feature_engineering
+-> train_model
+-> wait_streaming_model_reload
+-> end
+```
+
+- Da them task `wait_streaming_model_reload` de Airflow UI the hien giai doan cho streaming predictor reload model moi.
+- Da xay streaming predictor:
+  - Consume Kafka theo micro-batch.
+  - Tim model moi nhat trong MinIO duoi path `model/year=YYYY/month=MM/day=DD/HH-MM-SS/model/`.
+  - Load Spark `PipelineModel`.
+  - Lay feature order tu `VectorAssembler`.
+  - Build dung raw feature va derived feature nhu batch:
+    - `is_well_known_port`
+    - `is_ssh_port`
+    - `is_web_port`
+    - `pkt_ratio`
+    - `byte_ratio`
+    - `bytes_per_pkt`
+  - Validate missing feature, NaN, inf.
+  - Row loi duoc gui ra dashboard voi `status=invalid`, day khong phai nhan train cua model.
+  - Tu reload model moi nhat theo `MODEL_RELOAD_INTERVAL_SEC`.
+- Da xay dashboard consume `prediction-topic`:
+  - Luu recent prediction trong memory.
+  - Hien thi Total, Benign, Attack, Invalid, Predict / Sec, Avg Latency.
+  - Hien thi Label Distribution va Recent Predictions.
+  - Tieu de UI da doi thanh `REALTIME NETWORK INTRUSION DETECTION`.
+  - Subtitle da doi thanh `Prediction based on latest model.`
+- Da them Kubernetes manifests:
+  - `k8s/streaming/stream_producer.yaml`
+  - `k8s/streaming/streaming_predictor.yaml`
+  - `k8s/dashboard/dashboard.yaml`
+- Da them Kafka topics:
+  - `stream-topic`
+  - `prediction-topic`
+- Da cap nhat Docker/requirements cho simulator, streaming predictor va dashboard.
+- Da tao bo tai lieu va script deployment moi, khong phu thuoc folder `scripts/` cu:
+  - `docs/deployment/project_runbook.md`
+  - `docs/deployment/windows/*.ps1`
+  - `docs/deployment/linux/*.sh`
+- Da commit va push len remote branch `VanDaiAiflow`:
+  - `3997504 Add Streaming-Predict flow, Dashboard and project describe, guild to deployment`
+  - `02ab111 Update build images script`
+
+### Trang thai demo da dat duoc
+
+- Airflow UI da tung mo duoc bang port-forward.
+- Kafka UI, Spark Master UI va MinIO Console da co lenh port-forward trong deployment scripts.
+- Streaming predictor da tung load duoc model:
+
+```text
+year=2026/month=06/day=02/20-17-49
+```
+
+- Dashboard da hien thi du lieu prediction realtime va co metric `Predict / Sec`.
+
+### Luu y ky thuat da thong nhat
+
+- `invalid` khong phai nhan trong model training.
+- `invalid` chi la status cua streaming predictor khi row realtime co gia tri khong hop le nhu missing, NaN hoac inf.
+- Cac gia tri `inf` trong du lieu CIC/IDS thuong xuat hien o cac cot rate nhu `Flow Pkts/s`, `Flow Byts/s`, nhieu truong hop do `Flow Duration = 0`.
+- Batch pipeline hien tai da drop/clean cac gia tri khong hop le truoc khi train, nen model khong hoc nhan `invalid`.
+- Stream producer mac dinh gui 1 row moi `50ms`, tuong duong khoang 20 rows/second neu Kafka va pod on dinh.
+- Streaming predictor gom toi da `PREDICT_BATCH_SIZE=200` rows moi micro-batch, nhung batch thuc te phu thuoc toc do producer va Kafka.
+
+### Lenh UI chinh
+
+```text
+Airflow: http://localhost:18080
+Dashboard: http://localhost:15000
+Kafka UI: http://localhost:18081
+Spark Master UI: http://localhost:18082
+MinIO Console: http://localhost:19001
+```
+
+Chay tren Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File docs/deployment/windows/06-open-ui.ps1
+```
+
+### Trang thai git cuoi cung
+
+- Remote branch da push: `VanDaiAiflow`.
+- Source code chinh da commit.
+- Con lai cac folder tam `__pycache__` dang untracked, khong can commit.
 
 ## Muc tieu
 
