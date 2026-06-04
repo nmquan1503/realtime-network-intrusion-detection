@@ -26,7 +26,7 @@ spec:
                   fieldPath: status.podIP
           resources:
             requests:
-              cpu: "500m"
+              cpu: "50m"
               memory: "1.5Gi"
             limits:
               cpu: "1"

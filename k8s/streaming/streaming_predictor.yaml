@@ -42,7 +42,7 @@ spec:
               value: "200"
           resources:
             requests:
-              cpu: "1"
+              cpu: "0.1"
               memory: "3Gi"
             limits:
               cpu: "2"

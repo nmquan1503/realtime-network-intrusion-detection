@@ -36,6 +36,7 @@ metadata:
   name: airflow-logs-pvc
   namespace: bigdata
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:

@@ -4,11 +4,12 @@ metadata:
   name: airflow-postgres-pvc
   namespace: bigdata
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: Deployment

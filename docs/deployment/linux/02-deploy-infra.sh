@@ -22,9 +22,9 @@ kubectl rollout status deployment/spark-master -n "$NAMESPACE" --timeout=300s
 kubectl rollout status deployment/spark-worker -n "$NAMESPACE" --timeout=300s
 
 kubectl apply -f k8s/airflow/rbac.yaml -n "$NAMESPACE"
+kubectl apply -f k8s/airflow/airflow-common.yaml -n "$NAMESPACE"
 kubectl apply -f k8s/airflow/postgres.yaml -n "$NAMESPACE"
 kubectl rollout status deployment/airflow-postgres -n "$NAMESPACE" --timeout=300s
-kubectl apply -f k8s/airflow/airflow-common.yaml -n "$NAMESPACE"
 kubectl delete job/airflow-init -n "$NAMESPACE" --ignore-not-found
 kubectl apply -f k8s/airflow/airflow-init-job.yaml -n "$NAMESPACE"
 kubectl wait --for=condition=complete job/airflow-init -n "$NAMESPACE" --timeout=300s

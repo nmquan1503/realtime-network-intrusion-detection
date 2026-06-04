@@ -55,32 +55,32 @@ def create_spark(app_name: str, stage: str):
             builder
             .config("spark.executor.instances", "2")
             .config("spark.executor.cores", "1")
-            .config("spark.executor.memory", "2g")
-            .config("spark.driver.memory", "2g")
-            .config("spark.sql.shuffle.partitions", "16")
-            .config("spark.sql.files.maxPartitionBytes", "128m")
+            .config("spark.executor.memory", "512m")
+            .config("spark.driver.memory", "512m")
+            .config("spark.sql.shuffle.partitions", "2")
+            .config("spark.sql.files.maxPartitionBytes", "32m")
         )
 
     elif stage == "feature":
         builder = (
             builder
-            .config("spark.executor.instances", "2")
-            .config("spark.executor.cores", "2")
-            .config("spark.executor.memory", "3g")
-            .config("spark.driver.memory", "2g")
-            .config("spark.sql.shuffle.partitions", "32")
-            .config("spark.sql.files.maxPartitionBytes", "128m")
+            .config("spark.executor.instances", "1")
+            .config("spark.executor.cores", "1")
+            .config("spark.executor.memory", "512m")
+            .config("spark.driver.memory", "512m")
+            .config("spark.sql.shuffle.partitions", "2")
+            .config("spark.sql.files.maxPartitionBytes", "32m")
         )
 
     elif stage == "train":
         builder = (
             builder
-            .config("spark.executor.instances", "2")
-            .config("spark.executor.cores", "2")
-            .config("spark.executor.memory", "4g")
-            .config("spark.driver.memory", "3g")
-            .config("spark.sql.shuffle.partitions", "32")
-            .config("spark.sql.files.maxPartitionBytes", "256m")
+            .config("spark.executor.instances", "1")
+            .config("spark.executor.cores", "1")
+            .config("spark.executor.memory", "1g")
+            .config("spark.driver.memory", "512m")
+            .config("spark.sql.shuffle.partitions", "4")
+            .config("spark.sql.files.maxPartitionBytes", "64m")
         )
 
     else:
